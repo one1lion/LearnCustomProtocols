@@ -1,0 +1,41 @@
+﻿<Window x:Class="LearnCustomProtocols.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LearnCustomProtocols.Wpf"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <!-- Add the instructions about clicking the buttons below to register or unregister the custom protocol -->
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="10" FontSize="16">
+            <Run Text="Click the " />
+            <Run Text="Register" Foreground="Blue" />
+            <Run Text=" button to register the custom protocol." />
+            <LineBreak />
+            <Run Text="Click the " />
+            <Run Text="Unregister" Foreground="Blue" />
+            <Run Text=" button to unregister the custom protocol." />
+        </TextBlock>
+        <!-- Add the buttons to register or unregister the custom protocol -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Button Content="Register" Margin="10" Padding="10" Click="RegisterButton_Click" />
+            <Button Content="Unregister" Margin="10" Padding="10" Click="UnregisterButton_Click" />
+        </StackPanel>
+        <!-- Add the section for displaying the results of the chosen process -->
+        <TextBox 
+            Grid.Row="2" 
+            x:Name="ResultTextBlock" 
+            Background="Transparent"
+            BorderThickness="0"
+            Margin="10" 
+            FontSize="16"
+            IsReadOnly="True"
+            TextWrapping="Wrap" />
+    </Grid>
+</Window>
