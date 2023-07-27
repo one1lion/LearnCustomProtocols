@@ -38,26 +38,70 @@ public class CustomProtocol
         // Flush the changes to the registry
         protocolKey.Flush();
 
-        DisableOpenWarning($"Software\\Wow6432Node\\Microsoft\\Internet Explorer\\ProtocolExecute\\{_urlProtocol}");
-        AddSecurityWarningKey("Software\\Wow6432Node\\Microsoft\\Internet Explorer\\Low Rights\\ElevationPolicy");
+        var accumEx = new List<Exception?>()
+        {
+            TryStep(() => DisableOpenWarning($"Software\\Wow6432Node\\Microsoft\\Internet Explorer\\ProtocolExecute\\{_urlProtocol}"), out var _),
+            TryStep(() => AddSecurityWarningKey("Software\\Wow6432Node\\Microsoft\\Internet Explorer\\Low Rights\\ElevationPolicy"), out var _)
+        };
+
+        if (accumEx.Any(x => x is not null))
+        {
+            throw new AggregateException(accumEx.Where(x => x is not null).Select(x => x!));
+        }
     }
 
     public void UnregisterUrlProtocol()
     {
-        Registry.CurrentUser.DeleteSubKeyTree($"SOFTWARE\\Classes\\{_urlProtocol}", false);
-        Registry.ClassesRoot.DeleteSubKeyTree(_urlProtocol);
-        Registry.LocalMachine.DeleteSubKeyTree("Software\\Microsoft\\Internet Explorer\\ProtocolExecute\\" + _urlProtocol);
-        Registry.LocalMachine.DeleteSubKeyTree("Software\\Wow6432Node\\Microsoft\\Internet Explorer\\ProtocolExecute\\" + _urlProtocol);
+        var accumEx = new List<Exception?>()
+        {
+            TryStep(() => Registry.CurrentUser.DeleteSubKeyTree($"SOFTWARE\\Classes\\{_urlProtocol}", false)),
+            TryStep(() => Registry.ClassesRoot.DeleteSubKeyTree(_urlProtocol)),
+            TryStep(() => Registry.LocalMachine.DeleteSubKeyTree($"Software\\Microsoft\\Internet Explorer\\ProtocolExecute\\{_urlProtocol}")),
+            TryStep(() => Registry.LocalMachine.DeleteSubKeyTree($"Software\\Wow6432Node\\Microsoft\\Internet Explorer\\ProtocolExecute\\{_urlProtocol}")),
 
-        RemoveSecurityWarningKey("Software\\Microsoft\\Internet Explorer\\Low Rights\\ElevationPolicy");
-        RemoveSecurityWarningKey("Software\\Wow6432Node\\Microsoft\\Internet Explorer\\Low Rights\\ElevationPolicy");
+            TryStep(() => RemoveSecurityWarningKey("Software\\Microsoft\\Internet Explorer\\Low Rights\\ElevationPolicy")),
+            TryStep(() => RemoveSecurityWarningKey("Software\\Wow6432Node\\Microsoft\\Internet Explorer\\Low Rights\\ElevationPolicy"))
+        };
+
+        if (accumEx.Any(x => x is not null))
+        {
+            throw new AggregateException(accumEx.Where(x => x is not null).Select(x => x!));
+        }
+    }
+
+    private static Exception? TryStep(Action action)
+    {
+        try
+        {
+            action();
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return ex;
+        }
+    }
+    
+    private static Exception? TryStep<T>(Func<T> function, out T? retVal)
+    {
+        try
+        {
+            retVal = function();
+            return null;
+        }
+        catch (Exception ex)
+        {
+            retVal = default;
+            return ex;
+        }
     }
 
     private static bool DisableOpenWarning(string regPath)
     {
+        RegistryKey? rKey = null;
         try
         {
-            var rKey = Registry.LocalMachine.OpenSubKey(regPath, true) ?? Registry.LocalMachine.CreateSubKey(regPath);
+            rKey = Registry.LocalMachine.OpenSubKey(regPath, true) ?? Registry.LocalMachine.CreateSubKey(regPath);
             rKey.SetValue("WarnOnOpen", 0, RegistryValueKind.DWord);
             return true;
         }
@@ -65,23 +109,31 @@ public class CustomProtocol
         {
             return false;
         }
+        finally
+        {
+            rKey?.Dispose();
+        }
     }
 
     private bool AddSecurityWarningKey(string regPath)
     {
         try
         {
-            var appName = _exePath[(_exePath.LastIndexOf("\\") + 1)..];
-            var appPath = _exePath[.._exePath.LastIndexOf("\\")];
             using var rKey = Registry.LocalMachine.OpenSubKey(regPath, true);
+
+            var appName = Path.GetFileName(_exePath);
+            var appPath = Path.GetDirectoryName(_exePath);
+
             string? elevationGuid = null;
             RegistryKey? elevationGuidKey = null;
-            bool keyExists = false;
-            if (rKey != null)
+
+            var keyExists = false;
+            if (rKey is not null)
+            {
                 foreach (string elevationGuidVar in rKey.GetSubKeyNames())
                 {
                     elevationGuid = elevationGuidVar;
-                    elevationGuidKey = Registry.LocalMachine.OpenSubKey(regPath + "\\" + elevationGuid);
+                    elevationGuidKey = Registry.LocalMachine.OpenSubKey($"{regPath}\\{elevationGuid}");
                     if (elevationGuidKey == null)
                     {
                         continue;
@@ -92,19 +144,20 @@ public class CustomProtocol
                         break;
                     }
                 }
+            }
             if (keyExists)
             {
-                elevationGuidKey = Registry.LocalMachine.OpenSubKey(regPath + "\\" + elevationGuid, true);
+                elevationGuidKey = Registry.LocalMachine.OpenSubKey($"{regPath}\\{elevationGuid}", true);
             }
             else
             {
-                elevationGuid = "{" + (Guid.NewGuid()).ToString() + "}";
-                elevationGuidKey = Registry.LocalMachine.CreateSubKey(regPath + "\\" + elevationGuid);
+                elevationGuid = $"{{{Guid.NewGuid()}}}";
+                elevationGuidKey = Registry.LocalMachine.CreateSubKey($"{regPath}\\{elevationGuid}");
             }
-            if (elevationGuidKey != null)
+            if (elevationGuidKey is not null)
             {
                 elevationGuidKey.SetValue("AppName", appName);
-                elevationGuidKey.SetValue("AppPath", appPath);
+                elevationGuidKey.SetValue("AppPath", appPath ?? Environment.CurrentDirectory);
                 elevationGuidKey.SetValue("Policy", 3, RegistryValueKind.DWord);
                 elevationGuidKey.Close();
             }
@@ -120,18 +173,18 @@ public class CustomProtocol
     {
         try
         {
-            var appName = _exePath[(_exePath.LastIndexOf("\\") + 1)..];
+            var appName = Path.GetFileName(_exePath);
             string? elevationGuid = null;
             RegistryKey? elevationGuidKey = null;
 
             using var rKey = Registry.LocalMachine.OpenSubKey(regPath, true);
 
-            if (rKey != null)
+            if (rKey is not null)
             {
                 foreach (string elevationGuidVar in rKey.GetSubKeyNames())
                 {
                     elevationGuid = elevationGuidVar;
-                    elevationGuidKey = Registry.LocalMachine.OpenSubKey(regPath + "\\" + elevationGuid);
+                    elevationGuidKey = Registry.LocalMachine.OpenSubKey($"{regPath}\\{elevationGuid}");
                     if (elevationGuidKey == null)
                     {
                         continue;
@@ -142,7 +195,7 @@ public class CustomProtocol
                     }
                 }
             }
-            if (elevationGuidKey != null && elevationGuid != null)
+            if (elevationGuidKey is not null && elevationGuid is not null)
             {
                 elevationGuidKey.Close();
                 rKey?.DeleteSubKeyTree(elevationGuid);
