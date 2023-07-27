@@ -15,7 +15,8 @@ The solution contains two application projects and one shared class library proj
 
 ## The Issue
 
-I am trying to figure out how the custom protocol works. The issue I am having is that after I register the protocol and try to use, the OS asks me to choose an application to open the link with. I am expecting the application to just launch.
+I am trying to figure out how the custom protocol works. The issue I am having is that after I register the protocol and try to use, the OS asks me to choose an application to open the link with. 
+It shows the appropriate exe in the Default App section, but it doesn't launch when I choose it (I am selecting "Just Once"). I am expecting the application to just launch without the prompt.
 
 After I get this part working, the next places I will most likely run into issues are getting the URL in the running app, as well as re-using the existing instance of the app of it is already running.
  
