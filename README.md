@@ -12,6 +12,12 @@ The solution contains two application projects and one shared class library proj
 - `LearnCustomProtocols.Cnsl`: A simple console application that demonstrates how to register and use the custom protocol. The `Program.cs` file contains the logic for calling the Register and Unregister methods in the `CustomProtocol` class.
 - `LearnCustomProtocols.Wpf`: A simple WPF application that demonstrates how to register and use the custom protocol. `App.xaml.cs` contains the logic for calling the Register and Unregister methods in the `CustomProtocol` class.
 - `LearnCustomProtocols.Shared`: The project that contains the code for the custom protocol. The `CustomProtocol.cs` file contains the logic for registering and unregistering the custom protocol.
+
+## The Issue
+
+I am trying to figure out how the custom protocol works. The issue I am having is that after I register the protocol and try to use, the OS asks me to choose an application to open the link with. I am expecting the application to just launch.
+
+After I get this part working, the next places I will most likely run into issues are getting the URL in the running app, as well as re-using the existing instance of the app of it is already running.
  
 ## What is a protocol?
 
