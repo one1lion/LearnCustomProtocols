@@ -7,14 +7,15 @@ public class CustomProtocol
 {
     private readonly string _urlProtocol;
     private readonly string _exePath;
-    public CustomProtocol(string protocolName)
+
+    public CustomProtocol(string protocolName, string? manualExeFullFileName = null, string? exeNameIfVsHost = null)
     {
         _urlProtocol = protocolName;
-        _exePath = Environment.ProcessPath ?? string.Empty;
-        if (_exePath.Contains(".vshost"))
+        _exePath = manualExeFullFileName ?? Environment.ProcessPath ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(manualExeFullFileName) && _exePath.Contains(".vshost"))
         {
             var processWorkingDirectory = Path.GetDirectoryName(_exePath) ?? string.Empty;
-            _exePath = Path.Combine(processWorkingDirectory, Assembly.GetExecutingAssembly().Location.Split('\\').Last());
+            _exePath = Path.Combine(processWorkingDirectory, exeNameIfVsHost ?? Path.GetFileName(Assembly.GetExecutingAssembly().Location));
         }
     }
 
